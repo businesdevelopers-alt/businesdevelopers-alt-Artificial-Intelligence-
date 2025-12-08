@@ -25,8 +25,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             <p className="text-3xl font-extrabold text-green-600">38</p>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-             <p className="text-slate-400 text-xs font-bold uppercase mb-2">القادة الأخلاقيين</p>
-             <p className="text-3xl font-extrabold text-blue-600">12</p>
+             <p className="text-slate-400 text-xs font-bold uppercase mb-2">معدل وضوح الأفكار</p>
+             <p className="text-3xl font-extrabold text-blue-600">76%</p>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
              <p className="text-slate-400 text-xs font-bold uppercase mb-2">معدل القبول</p>
@@ -44,8 +44,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     <span>📥</span>
                  </button>
                  <button className="w-full text-right p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors flex justify-between">
-                    <span>أرني وسام القائد الأخلاقي فقط</span>
-                    <span>🏅</span>
+                    <span>أصدر تقرير الفكرة الجماعي للدفعة</span>
+                    <span>💡</span>
                  </button>
                  <button className="w-full text-right p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors flex justify-between">
                     <span>تكوين فرق متوازنة تلقائياً (AI Team Formation)</span>
@@ -55,33 +55,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
            </div>
 
            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-              <h3 className="font-bold text-slate-800 mb-4">توزيع القطاعات</h3>
+              <h3 className="font-bold text-slate-800 mb-4">نضج المشاريع (Project Maturity)</h3>
               <div className="space-y-4">
                  <div>
                    <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                     <span>تقني</span>
-                     <span>45%</span>
+                     <span>فكرة فقط (Idea)</span>
+                     <span>60%</span>
                    </div>
                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                     <div className="bg-blue-500 h-full w-[45%]"></div>
+                     <div className="bg-blue-500 h-full w-[60%]"></div>
                    </div>
                  </div>
                  <div>
                    <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                     <span>خدمي</span>
-                     <span>30%</span>
-                   </div>
-                   <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                     <div className="bg-indigo-500 h-full w-[30%]"></div>
-                   </div>
-                 </div>
-                 <div>
-                   <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                     <span>صناعي</span>
+                     <span>نموذج أولي (Prototype)</span>
                      <span>25%</span>
                    </div>
                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                     <div className="bg-orange-500 h-full w-[25%]"></div>
+                     <div className="bg-indigo-500 h-full w-[25%]"></div>
+                   </div>
+                 </div>
+                 <div>
+                   <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
+                     <span>منتج فعلي (Product)</span>
+                     <span>15%</span>
+                   </div>
+                   <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                     <div className="bg-green-500 h-full w-[15%]"></div>
                    </div>
                  </div>
               </div>

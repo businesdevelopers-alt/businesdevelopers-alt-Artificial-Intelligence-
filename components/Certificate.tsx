@@ -26,6 +26,14 @@ export const Certificate: React.FC<CertificateProps> = ({ user, onClose }) => {
         .animate-logo-glow {
           animation: glow-pulse 4s infinite ease-in-out;
         }
+        @keyframes shimmer-slide {
+          0% { transform: translateX(-150%) skewX(-15deg); }
+          50% { transform: translateX(150%) skewX(-15deg); }
+          100% { transform: translateX(150%) skewX(-15deg); }
+        }
+        .animate-shimmer-slide {
+          animation: shimmer-slide 5s infinite ease-in-out;
+        }
         @media print {
           body * {
             visibility: hidden;
@@ -71,34 +79,39 @@ export const Certificate: React.FC<CertificateProps> = ({ user, onClose }) => {
             {/* Inner Gold Border */}
             <div className="absolute inset-2 border border-amber-600/40 pointer-events-none z-10"></div>
             <div className="absolute inset-3 border border-amber-600/20 pointer-events-none z-10"></div>
+
+            {/* Subtle Animated Shimmer Overlay */}
+            <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden no-print">
+               <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-slide"></div>
+            </div>
             
-            {/* Dynamic AI Background Pattern - Muted Gold */}
-            <div className="absolute inset-0 opacity-[0.06] pointer-events-none z-0">
+            {/* Dynamic AI Background Pattern & Watermark */}
+            <div className="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                  <defs>
-                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style={{stopColor:'rgb(180, 83, 9)', stopOpacity:1}} /> {/* amber-700 */}
-                      <stop offset="100%" style={{stopColor:'rgb(120, 53, 15)', stopOpacity:1}} /> {/* amber-900 */}
-                    </linearGradient>
-                   <pattern id="ai-network" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
-                     {/* Nodes */}
-                     <circle cx="20" cy="20" r="1.5" fill="url(#grad1)" />
-                     <circle cx="100" cy="20" r="1.5" fill="url(#grad1)" />
-                     <circle cx="60" cy="60" r="2.5" fill="url(#grad1)" />
-                     <circle cx="20" cy="100" r="1.5" fill="url(#grad1)" />
-                     <circle cx="100" cy="100" r="1.5" fill="url(#grad1)" />
-                     
-                     {/* Connections */}
-                     <path d="M20 20 L60 60 L100 20" stroke="currentColor" strokeWidth="0.5" fill="none" strokeDasharray="4 2" />
-                     <path d="M20 100 L60 60 L100 100" stroke="currentColor" strokeWidth="0.5" fill="none" strokeDasharray="4 2" />
-                     <path d="M20 20 L20 100" stroke="currentColor" strokeWidth="0.5" fill="none" opacity="0.3" />
-                     <path d="M100 20 L100 100" stroke="currentColor" strokeWidth="0.5" fill="none" opacity="0.3" />
+                   <pattern id="ai-circuit" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                     <circle cx="10" cy="10" r="1.5" fill="#78350f" />
+                     <circle cx="90" cy="90" r="1.5" fill="#78350f" />
+                     <path d="M10 10 L 50 10 L 50 50 L 90 90" stroke="#b45309" strokeWidth="0.5" fill="none" opacity="0.5"/>
+                     <path d="M90 10 L 50 10" stroke="#b45309" strokeWidth="0.5" fill="none" opacity="0.3"/>
+                     <path d="M10 90 L 50 90 L 50 50" stroke="#b45309" strokeWidth="0.5" fill="none" opacity="0.3"/>
                    </pattern>
                  </defs>
-                 <rect width="100%" height="100%" fill="url(#ai-network)" className="text-amber-900" />
                  
-                 {/* Large subtle curves */}
-                 <path d="M0,100 C150,200 350,0 500,100 S800,0 1000,100" stroke="rgba(180, 83, 9, 0.05)" strokeWidth="150" fill="none" />
+                 <rect width="100%" height="100%" fill="url(#ai-circuit)" />
+                 
+                 {/* Central AI Brain Watermark */}
+                 <g transform="translate(50%, 50%)">
+                   {/* Centered logic to simulate translate(50%, 50%) via percentage coords if possible, or simple paths */}
+                 </g>
+               </svg>
+            </div>
+            
+            {/* Centered Large Watermark */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-[0.04]">
+               <svg viewBox="0 0 24 24" className="w-[500px] h-[500px] text-slate-900" fill="currentColor">
+                  <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2a8 8 0 0 0-8 8c0 4.418 3.582 8 8 8s8-3.582 8-8-3.582-8-8-8zm-1 5h2v2h-2V9zm0 4h2v6h-2v-6z" /> 
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                </svg>
             </div>
 

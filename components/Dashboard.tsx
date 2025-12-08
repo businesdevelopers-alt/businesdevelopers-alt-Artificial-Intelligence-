@@ -228,7 +228,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, levels, onSelectLeve
                   relative rounded-3xl p-8 transition-all duration-300 flex flex-col group
                   ${level.isLocked 
                     ? 'border border-gray-100 bg-gray-50 opacity-75 grayscale-[0.5]' 
-                    : 'border border-white bg-white shadow-sm hover:shadow-xl hover:-translate-y-2 ring-1 ring-gray-100 hover:ring-blue-100'
+                    : 'border border-white bg-white shadow-sm hover:shadow-xl hover:scale-[1.02] ring-1 ring-gray-100 hover:ring-blue-100'
                   }
                   ${level.isCompleted ? 'bg-gradient-to-br from-white to-green-50/50 border-green-100' : ''}
                 `}

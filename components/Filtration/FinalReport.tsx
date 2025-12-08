@@ -5,9 +5,10 @@ import { ApplicantProfile, FinalResult } from '../../types';
 interface FinalReportProps {
   profile: ApplicantProfile;
   result: FinalResult;
+  onStartJourney: () => void;
 }
 
-export const FinalReport: React.FC<FinalReportProps> = ({ profile, result }) => {
+export const FinalReport: React.FC<FinalReportProps> = ({ profile, result, onStartJourney }) => {
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 font-sans">
       <div className="max-w-3xl mx-auto bg-white shadow-2xl rounded-none md:rounded-lg overflow-hidden border border-slate-200" id="report-print">
@@ -87,8 +88,12 @@ export const FinalReport: React.FC<FinalReportProps> = ({ profile, result }) => 
            <button onClick={() => window.print()} className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors">
              حمّل التقرير (PDF)
            </button>
-           <button className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg">
-             ابدأ رحلتك في الحاضنة 🚀
+           <button 
+             onClick={onStartJourney}
+             className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg flex items-center justify-center gap-2"
+           >
+             <span>ابدأ رحلتك في الحاضنة</span>
+             <span>🚀</span>
            </button>
         </div>
       </div>

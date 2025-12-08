@@ -1,12 +1,17 @@
 
 export enum FiltrationStage {
+  LANDING = 'LANDING',
+  PATH_FINDER = 'PATH_FINDER',
   WELCOME = 'WELCOME',
   PERSONALITY_TEST = 'PERSONALITY_TEST',
   ANALYTICAL_TEST = 'ANALYTICAL_TEST',
-  ASSESSMENT_RESULT = 'ASSESSMENT_RESULT', // The Radar Chart view
+  PROJECT_EVALUATION = 'PROJECT_EVALUATION', // New Stage
+  ASSESSMENT_RESULT = 'ASSESSMENT_RESULT',
   FINAL_REPORT = 'FINAL_REPORT',
   DEVELOPMENT_PLAN = 'DEVELOPMENT_PLAN',
-  PROGRESS_DASHBOARD = 'PROGRESS_DASHBOARD',
+  DASHBOARD = 'DASHBOARD',
+  LEVEL_VIEW = 'LEVEL_VIEW',
+  CERTIFICATE = 'CERTIFICATE',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD'
 }
 
@@ -78,10 +83,23 @@ export interface Badge {
   color: string;
 }
 
+// New Interface for Project Evaluation
+export interface ProjectEvaluationResult {
+  clarity: number;      // 0-20
+  value: number;        // 0-20
+  innovation: number;   // 0-20
+  market: number;       // 0-20
+  readiness: number;    // 0-20
+  totalScore: number;   // 0-100
+  aiOpinion: string;
+  classification: 'Green' | 'Yellow' | 'Red'; // Ready, Needs Dev, Unclear
+}
+
 export interface FinalResult {
   score: number; // 0-100
   leadershipStyle: string; // e.g., "Balanced Leader"
   metrics: RadarMetrics;
+  projectEval?: ProjectEvaluationResult; // Added optional project eval
   isQualified: boolean;
   badges: Badge[];
   recommendation: string;

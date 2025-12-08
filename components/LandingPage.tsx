@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { LEVELS_CONFIG } from '../types';
 
@@ -40,19 +41,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPathFinder 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8 animate-fade-in-up">
             <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight">
-              حوّل فكرتك إلى <br/>
-              <span className="text-blue-600">مشروع ناجح</span> <br/>
-              بمساعدة الذكاء الاصطناعي
+              نظام الترشيح الذكي <br/>
+              <span className="text-blue-600">لحاضنة بيزنس ديفلوبرز</span>
             </h1>
             <p className="text-xl text-gray-600 max-w-lg leading-relaxed">
-              برنامج تدريبي تفاعلي مخصص لرواد الأعمال. احصل على توجيه فوري، وخطط عمل مخصصة، وشهادة معتمدة، كل ذلك مدعوم بأحدث تقنيات الـ AI.
+              ابدأ تقييم جاهزيتك الريادية الآن. نظامنا يحلل شخصيتك، مهاراتك، وفكرتك ليمنحك تقريراً شاملاً وخطة تطوير مخصصة.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={onStart}
                 className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
               >
-                ابدأ رحلتك الآن مجاناً
+                ابدأ التقييم والترشيح
               </button>
               <button 
                 onClick={onPathFinder}
@@ -61,7 +61,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPathFinder 
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                قيم مشروعك (حدد مسارك)
+                محادثة المستشار الذكي
               </button>
             </div>
             
@@ -71,7 +71,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPathFinder 
                   <div key={i} className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white"></div>
                 ))}
               </div>
-              <p>انضم لأكثر من 1000+ رائد أعمال</p>
+              <p>أكثر من 500 مشروع تم تقييمه هذا الشهر</p>
             </div>
           </div>
 

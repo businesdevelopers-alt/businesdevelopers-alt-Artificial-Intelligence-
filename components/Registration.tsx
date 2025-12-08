@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
-import { UserProfile } from '../types';
+import { UserProfile, ProjectEvaluationResult, ApplicantProfile } from '../types';
+import { evaluateProjectIdea } from '../services/geminiService';
+import { playPositiveSound, playCelebrationSound } from '../services/audioService';
 
 interface RegistrationProps {
   onRegister: (profile: UserProfile) => void;
@@ -35,15 +37,60 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // AI Analysis State
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<ProjectEvaluationResult | null>(null);
 
   const filteredIndustries = INDUSTRIES.filter(ind => 
     ind.label.includes(searchTerm)
   );
 
+  const handleAnalyzeIdea = async () => {
+    if (!formData.startupDescription || formData.startupDescription.length < 20) return;
+    
+    setIsAnalyzing(true);
+    playPositiveSound();
+
+    try {
+      // Create a temporary profile object to satisfy the service signature
+      const tempProfile: ApplicantProfile = {
+        codeName: formData.name,
+        projectStage: 'Idea', // Default assumption for registration
+        sector: formData.industry,
+        goal: 'Registration Analysis',
+        techLevel: 'Medium'
+      };
+
+      const result = await evaluateProjectIdea(formData.startupDescription, tempProfile);
+      setAnalysisResult(result);
+      playCelebrationSound();
+    } catch (error) {
+      console.error("Analysis failed", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.startupName && formData.startupDescription) {
       onRegister(formData);
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 15) return 'bg-green-500';
+    if (score >= 10) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const getClassColor = (cls: string) => {
+    switch (cls) {
+      case 'Green': return 'bg-green-50 border-green-200 text-green-800';
+      case 'Yellow': return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+      case 'Red': return 'bg-red-50 border-red-200 text-red-800';
+      default: return 'bg-gray-50 border-gray-200';
     }
   };
 
@@ -106,7 +153,7 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 relative overflow-y-auto">
         <div className="max-w-md w-full animate-fade-in-up">
            <div className="lg:hidden mb-8 text-center">
              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg transform rotate-3">
@@ -243,16 +290,86 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
             </div>
 
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-2 group-focus-within:text-blue-600 transition-colors">وصف الفكرة</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 group-focus-within:text-blue-600 transition-colors">
+                وصف الفكرة
+                <span className="text-gray-400 font-normal text-xs mr-2">(اكتب 20 حرفاً على الأقل للتحليل)</span>
+              </label>
               <textarea
                 required
                 rows={4}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-200 resize-none"
                 placeholder="اشرح المشكلة التي تحلها والحل المقترح..."
                 value={formData.startupDescription}
-                onChange={(e) => setFormData({ ...formData, startupDescription: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, startupDescription: e.target.value });
+                  if (analysisResult) setAnalysisResult(null); // Reset analysis if changed
+                }}
               />
+              
+              {/* AI Analysis Button */}
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleAnalyzeIdea}
+                  disabled={!formData.startupDescription || formData.startupDescription.length < 20 || isAnalyzing}
+                  className="text-sm bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      جاري التحليل...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      تحليل الفكرة بالذكاء الاصطناعي
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Analysis Result Display */}
+            {analysisResult && (
+              <div className={`rounded-xl border p-5 animate-fade-in-up ${getClassColor(analysisResult.classification)}`}>
+                 <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-bold flex items-center gap-2">
+                      <span className="text-xl">🤖</span>
+                      نتيجة تحليل الفكرة
+                    </h3>
+                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      analysisResult.classification === 'Green' ? 'bg-green-200 text-green-800' :
+                      analysisResult.classification === 'Yellow' ? 'bg-yellow-200 text-yellow-800' : 'bg-red-200 text-red-800'
+                    }`}>
+                       {analysisResult.totalScore}/100 - {
+                         analysisResult.classification === 'Green' ? 'فكرة واعدة' :
+                         analysisResult.classification === 'Yellow' ? 'تحتاج تطوير' : 'غير واضحة'
+                       }
+                    </div>
+                 </div>
+                 <p className="text-sm opacity-90 leading-relaxed mb-4">
+                   "{analysisResult.aiOpinion}"
+                 </p>
+                 
+                 {/* Mini Stats */}
+                 <div className="grid grid-cols-2 gap-3 text-xs">
+                   <div>
+                     <span className="block opacity-70">الجدوى السوقية</span>
+                     <div className="w-full bg-black/5 h-1.5 rounded-full mt-1">
+                       <div className="bg-current h-1.5 rounded-full" style={{width: `${(analysisResult.market / 20) * 100}%`}}></div>
+                     </div>
+                   </div>
+                   <div>
+                     <span className="block opacity-70">الابتكار</span>
+                     <div className="w-full bg-black/5 h-1.5 rounded-full mt-1">
+                       <div className="bg-current h-1.5 rounded-full" style={{width: `${(analysisResult.innovation / 20) * 100}%`}}></div>
+                     </div>
+                   </div>
+                 </div>
+              </div>
+            )}
 
             <button
               type="submit"

@@ -14,6 +14,10 @@ export const AnalyticalTest: React.FC<AnalyticalTestProps> = ({ profile, onCompl
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // State for answer processing animation
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
   useEffect(() => {
     const loadQs = async () => {
@@ -25,22 +29,38 @@ export const AnalyticalTest: React.FC<AnalyticalTestProps> = ({ profile, onCompl
   }, [profile]);
 
   const handleAnswer = (optionIdx: number) => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+    setSelectedOption(optionIdx);
+
     const isCorrect = optionIdx === questions[currentIndex].correctIndex;
+    
+    // Play sound immediately for responsiveness
     if (isCorrect) {
       playPositiveSound();
-      setScore(s => s + 1);
     } else {
       playErrorSound();
     }
 
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      // Finish
-      const finalScore = isCorrect ? score + 1 : score;
-      const percentage = Math.round((finalScore / questions.length) * 100);
-      onComplete(percentage);
-    }
+    // Delay to show the spinner and simulate processing
+    setTimeout(() => {
+      let newScore = score;
+      if (isCorrect) {
+        newScore = score + 1;
+        setScore(newScore);
+      }
+
+      if (currentIndex < questions.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+        setIsProcessing(false);
+        setSelectedOption(null);
+      } else {
+        // Finish
+        const percentage = Math.round((newScore / questions.length) * 100);
+        onComplete(percentage);
+      }
+    }, 1000);
   };
 
   if (isLoading) {
@@ -99,9 +119,23 @@ export const AnalyticalTest: React.FC<AnalyticalTestProps> = ({ profile, onCompl
                 <button
                   key={idx}
                   onClick={() => handleAnswer(idx)}
-                  className="p-4 rounded-xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 text-slate-700 font-medium text-right transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  disabled={isProcessing}
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-200 text-right font-medium relative min-h-[60px]
+                    ${isProcessing && selectedOption === idx 
+                      ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                      : 'border-slate-100 hover:border-blue-500 hover:bg-blue-50 text-slate-700'}
+                    ${isProcessing && selectedOption !== idx ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
                 >
-                  {opt}
+                  <span className={`transition-opacity duration-200 ${isProcessing && selectedOption === idx ? 'opacity-0' : 'opacity-100'}`}>
+                    {opt}
+                  </span>
+                  
+                  {isProcessing && selectedOption === idx && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>

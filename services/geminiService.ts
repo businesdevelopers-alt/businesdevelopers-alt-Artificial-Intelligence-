@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalyticalQuestion, ApplicantProfile, UserProfile, Question } from "../types";
+import { AnalyticalQuestion, ApplicantProfile, UserProfile, Question, ProjectEvaluationResult } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = "gemini-2.5-flash";
@@ -90,6 +90,79 @@ export const generateAnalyticalQuestions = async (profile: ApplicantProfile): Pr
         correctIndex: 1
       }
     ];
+  }
+};
+
+export const evaluateProjectIdea = async (ideaText: string, profile: ApplicantProfile): Promise<ProjectEvaluationResult> => {
+  const prompt = `
+    أنت خبير تقييم مشاريع في مسرعة أعمال.
+    قم بتحليل فكرة المشروع التالية بناءً على 5 محاور رئيسية.
+    
+    بيانات المشروع:
+    - المجال: ${profile.sector}
+    - المرحلة: ${profile.projectStage}
+    - وصف الفكرة: "${ideaText}"
+
+    المطلوب:
+    1. تقييم كل محور من 0 إلى 20.
+    2. المجموع الكلي من 100.
+    3. رأي الذكاء الاصطناعي (فقرة قصيرة مفيدة).
+    4. التصنيف (Green = جاهز للاحتضان، Yellow = يحتاج تطوير، Red = غير واضح).
+
+    المحاور:
+    - clarity: وضوح الفكرة وتحديد المشكلة والحل.
+    - value: القيمة المقترحة والفائدة للعميل.
+    - innovation: التميز والابتكار مقارنة بالسوق.
+    - market: الجدوى السوقية وحجم السوق.
+    - readiness: الجاهزية للتنفيذ وقابلية التطبيق.
+
+    JSON Output Format:
+    {
+      "clarity": number,
+      "value": number,
+      "innovation": number,
+      "market": number,
+      "readiness": number,
+      "totalScore": number,
+      "aiOpinion": "string",
+      "classification": "Green" | "Yellow" | "Red"
+    }
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            clarity: { type: Type.NUMBER },
+            value: { type: Type.NUMBER },
+            innovation: { type: Type.NUMBER },
+            market: { type: Type.NUMBER },
+            readiness: { type: Type.NUMBER },
+            totalScore: { type: Type.NUMBER },
+            aiOpinion: { type: Type.STRING },
+            classification: { type: Type.STRING, enum: ["Green", "Yellow", "Red"] }
+          },
+          required: ["clarity", "value", "innovation", "market", "readiness", "totalScore", "aiOpinion", "classification"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No evaluation generated");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Error evaluating project:", error);
+    return {
+      clarity: 15, value: 15, innovation: 10, market: 12, readiness: 10,
+      totalScore: 62,
+      aiOpinion: "فكرة واعدة ولكن تحتاج إلى مزيد من التفصيل في خطة التنفيذ وتحليل المنافسين.",
+      classification: "Yellow"
+    };
   }
 };
 
