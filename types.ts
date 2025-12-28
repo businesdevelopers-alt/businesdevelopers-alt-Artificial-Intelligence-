@@ -5,14 +5,26 @@ export enum FiltrationStage {
   WELCOME = 'WELCOME',
   PERSONALITY_TEST = 'PERSONALITY_TEST',
   ANALYTICAL_TEST = 'ANALYTICAL_TEST',
-  PROJECT_EVALUATION = 'PROJECT_EVALUATION', // New Stage
+  PROJECT_EVALUATION = 'PROJECT_EVALUATION',
   ASSESSMENT_RESULT = 'ASSESSMENT_RESULT',
+  APPLICATION_STATUS = 'APPLICATION_STATUS',
   FINAL_REPORT = 'FINAL_REPORT',
   DEVELOPMENT_PLAN = 'DEVELOPMENT_PLAN',
   DASHBOARD = 'DASHBOARD',
   LEVEL_VIEW = 'LEVEL_VIEW',
   CERTIFICATE = 'CERTIFICATE',
-  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD'
+  PROJECT_BUILDER = 'PROJECT_BUILDER'
+}
+
+export type AgentCategory = 'Vision' | 'Market' | 'User' | 'Opportunity' | 'Risk' | 'Decision';
+
+export interface AIAgent {
+  id: string;
+  name: string;
+  category: AgentCategory;
+  description: string;
+  recommendedModel: string;
+  role: string;
 }
 
 export type ProjectStageType = 'Idea' | 'Prototype' | 'Product';
@@ -21,7 +33,7 @@ export type TechLevelType = 'Low' | 'Medium' | 'High';
 export interface ApplicantProfile {
   codeName: string;
   projectStage: ProjectStageType;
-  sector: string; // Tech, Marketing, Services, Industrial
+  sector: string;
   goal: string;
   techLevel: TechLevelType;
 }
@@ -49,24 +61,6 @@ export interface Question {
   explanation?: string;
 }
 
-export interface PersonalityQuestion {
-  id: number;
-  situation: string;
-  options: {
-    text: string;
-    style: string; // e.g., 'Visionary', 'Operational', 'Balanced'
-  }[];
-}
-
-export interface AnalyticalQuestion {
-  id: number;
-  text: string;
-  type: 'choice' | 'analysis' | 'math';
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  options: string[];
-  correctIndex: number;
-}
-
 export interface RadarMetrics {
   readiness: number;
   analysis: number;
@@ -83,41 +77,93 @@ export interface Badge {
   color: string;
 }
 
-// New Interface for Project Evaluation
 export interface ProjectEvaluationResult {
-  clarity: number;      // 0-20
-  value: number;        // 0-20
-  innovation: number;   // 0-20
-  market: number;       // 0-20
-  readiness: number;    // 0-20
-  totalScore: number;   // 0-100
+  clarity: number;
+  value: number;
+  innovation: number;
+  market: number;
+  readiness: number;
+  totalScore: number;
   aiOpinion: string;
-  classification: 'Green' | 'Yellow' | 'Red'; // Ready, Needs Dev, Unclear
+  classification: 'Green' | 'Yellow' | 'Red';
 }
 
 export interface FinalResult {
-  score: number; // 0-100
-  leadershipStyle: string; // e.g., "Balanced Leader"
+  score: number;
+  leadershipStyle: string;
   metrics: RadarMetrics;
-  projectEval?: ProjectEvaluationResult; // Added optional project eval
+  projectEval?: ProjectEvaluationResult;
   isQualified: boolean;
   badges: Badge[];
   recommendation: string;
 }
 
-// Config for visual consistency
 export const SECTORS = [
-  { value: 'Tech', label: 'تقني وتكنولوجي' },
-  { value: 'Marketing', label: 'تسويق وإعلام' },
-  { value: 'Services', label: 'خدمي ولوجستي' },
-  { value: 'Industrial', label: 'صناعي وإنتاجي' }
+  { value: 'Tech', label: 'تقنية وتكنولوجيا' },
+  { value: 'E-commerce', label: 'تجارة إلكترونية' },
+  { value: 'Health', label: 'صحة وطب' },
+  { value: 'Food', label: 'أغذية ومشروبات' },
+  { value: 'Manufacturing', label: 'صناعة وإنتاج' },
+  { value: 'Other', label: 'أخرى' }
 ];
 
+export interface PersonalityQuestion {
+  id: number;
+  situation: string;
+  options: { text: string; style: string }[];
+}
+
+export interface AnalyticalQuestion {
+  text: string;
+  options: string[];
+  correctIndex: number;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+}
+
+export interface ProjectBuildData {
+  projectName: string;
+  description: string;
+  quality: 'Quick' | 'Balanced' | 'Enhanced' | 'Professional' | 'Max';
+  selectedAgents: string[];
+  results?: {
+    vision?: string;
+    marketAnalysis?: string;
+    userPersonas?: string;
+    hypotheses?: string[];
+    pitchDeck?: { title: string; content: string }[];
+  };
+}
+
+// Added to support SmartFeatures component
+export interface FailureSimulation {
+  brutalTruth: string;
+  probability: number;
+  financialLoss: string;
+  operationalImpact: string;
+  missingQuestions: string[];
+  recoveryPlan: string[];
+}
+
+// Added to support GovDashboard component
+export interface GovStats {
+  riskyMarkets: { name: string; failRate: number }[];
+  readySectors: { name: string; score: number }[];
+  commonFailReasons: { reason: string; percentage: number }[];
+  regulatoryGaps: string[];
+}
+
 export const LEVELS_CONFIG: LevelData[] = [
-  { id: 1, title: 'التحقق من الفكرة', description: 'تأكد من أن فكرتك تحل مشكلة حقيقية وتستحق الاستثمار.', isCompleted: false, isLocked: false },
-  { id: 2, title: 'نموذج العمل التجاري', description: 'ابنِ خطة عمل واضحة تحدد مصادر الدخل وقنوات التوزيع.', isCompleted: false, isLocked: true },
-  { id: 3, title: 'تحليل السوق والمنافسين', description: 'افهم حجم السوق ومن هم منافسوك وكيف تتفوق عليهم.', isCompleted: false, isLocked: true },
-  { id: 4, title: 'المنتج الأولي (MVP)', description: 'حدد الميزات الأساسية لمنتجك لإطلاقه بأقل التكاليف.', isCompleted: false, isLocked: true },
-  { id: 5, title: 'الخطة المالية', description: 'توقع التكاليف والإيرادات وحساب نقطة التعادل.', isCompleted: false, isLocked: true },
-  { id: 6, title: 'عرض الاستثمار', description: 'جهز عرضاً تقديمياً مقنعاً لجذب المستثمرين.', isCompleted: false, isLocked: true },
+  { id: 1, title: 'التحقق من الفكرة', description: 'تأكد من أن فكرتك تحل مشكلة حقيقية وتستحق الاستثمار والجهد.', isCompleted: false, isLocked: false },
+  { id: 2, title: 'نموذج العمل التجاري', description: 'ابنِ خطة عمل واضحة تحدد مصادر الدخل، العملاء، وقنوات التوزيع.', isCompleted: false, isLocked: true },
+  { id: 3, title: 'تحليل السوق والمنافسين', description: 'افهم حجم السوق ومن هم منافسوك وكيف ستتفوق عليهم بميزتك التنافسية.', isCompleted: false, isLocked: true },
+  { id: 4, title: 'المنتج الأولي (MVP)', description: 'حدد الميزات الأساسية لمنتجك لإطلاقه بأقل التكاليف والحصول على تعليقات العملاء.', isCompleted: false, isLocked: true },
+  { id: 5, title: 'الخطة المالية والتمويل', description: 'توقع التكاليف، الإيرادات، التدفقات النقدية، واحتياجات التمويل المستقبلي.', isCompleted: false, isLocked: true },
+  { id: 6, title: 'عرض الاستثمار النهائي', description: 'جهز عرضاً تقديمياً احترافياً (Pitch Deck) لجذب المستثمرين.', isCompleted: false, isLocked: true },
+];
+
+export const AVAILABLE_AGENTS: AIAgent[] = [
+  { id: 'vis-1', name: 'وكيل الرؤية الاستراتيجية', category: 'Vision', description: 'يقيّم الملاءمة الاستراتيجية للفكرة مع السوق.', recommendedModel: 'gemini-3-pro-preview', role: 'Strategic Advisor' },
+  { id: 'mkt-1', name: 'وكيل أبحاث السوق', category: 'Market', description: 'يحلل الطلب، المنافسة، والفرص المتاحة.', recommendedModel: 'gemini-3-pro-preview', role: 'Market Analyst' },
+  { id: 'rsk-1', name: 'وكيل تقييم المخاطر', category: 'Risk', description: 'يحدد المخاطر ويقترح خطط تخفيف.', recommendedModel: 'gemini-3-pro-preview', role: 'Risk Auditor' },
+  { id: 'dec-1', name: 'وكيل القرار والنمو', category: 'Decision', description: 'يصدر التوصيات النهائية للنمو والتوسع.', recommendedModel: 'gemini-3-pro-preview', role: 'Decision Maker' }
 ];

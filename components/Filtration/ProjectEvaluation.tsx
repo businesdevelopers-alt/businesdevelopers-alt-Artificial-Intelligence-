@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { ApplicantProfile, ProjectEvaluationResult } from '../../types';
 import { evaluateProjectIdea } from '../../services/geminiService';
-import { playCelebrationSound, playPositiveSound } from '../../services/audioService';
+import { playCelebrationSound, playPositiveSound, playErrorSound } from '../../services/audioService';
 
 interface ProjectEvaluationProps {
   profile: ApplicantProfile;
@@ -22,109 +22,143 @@ export const ProjectEvaluation: React.FC<ProjectEvaluationProps> = ({ profile, o
     playPositiveSound();
 
     try {
-      // Simulate file content if file mode (mock)
       const textToAnalyze = inputMode === 'file' 
-        ? `مشروع في مجال ${profile.sector} بمرحلة ${profile.projectStage}. (تم رفع ملف تفصيلي للتحليل)` 
+        ? `مشروع في مجال ${profile.sector} بمرحلة ${profile.projectStage}. تم رفع ملف توضيحي يتناول الحل المبتكر للمشكلة السوقية المحددة.` 
         : ideaText;
 
       const evalResult = await evaluateProjectIdea(textToAnalyze, profile);
       setResult(evalResult);
-      playCelebrationSound();
+      
+      if (evalResult.classification === 'Green') {
+        playCelebrationSound();
+      } else {
+        playPositiveSound();
+      }
     } catch (error) {
       console.error("Evaluation failed", error);
+      playErrorSound();
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 15) return 'bg-green-500';
-    if (score >= 10) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
-  const getClassColor = (cls: string) => {
+  const getStatusStyle = (cls: string) => {
     switch (cls) {
-      case 'Green': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Yellow': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Red': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100';
+      case 'Green': return { bg: 'bg-green-500', text: 'text-green-700', label: 'جاهز للاحتضان', icon: '🟢' };
+      case 'Yellow': return { bg: 'bg-amber-500', text: 'text-amber-700', label: 'يحتاج تطوير', icon: '🟡' };
+      case 'Red': return { bg: 'bg-rose-500', text: 'text-rose-700', label: 'غير واضح', icon: '🔴' };
+      default: return { bg: 'bg-slate-500', text: 'text-slate-700', label: 'قيد المراجعة', icon: '⚪' };
     }
   };
 
   if (result) {
+    const status = getStatusStyle(result.classification);
+    
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden animate-aero-in">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 md:p-8 font-sans">
+        <div className="max-w-4xl w-full bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden animate-fade-in-up">
           
-          {/* Header */}
-          <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold">تقرير تحليل المشروع</h2>
-              <p className="text-slate-400 text-sm">بيزنس ديفلوبرز - AI Evaluation</p>
-            </div>
-            <div className={`px-4 py-2 rounded-lg font-bold ${result.classification === 'Green' ? 'bg-green-500' : result.classification === 'Yellow' ? 'bg-yellow-500' : 'bg-red-500'}`}>
-              {result.totalScore}/100
+          <div className="bg-slate-900 p-10 md:p-14 text-white relative">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600 rounded-bl-full opacity-10 blur-3xl"></div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10 gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black shadow-lg">BD</div>
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-400">نظام التحليل التلقائي (AAS)</span>
+                </div>
+                <h2 className="text-4xl font-black mb-2">تقرير تقييم الفكرة</h2>
+                <p className="text-blue-400 font-bold">المتقدم: {profile.codeName}</p>
+              </div>
+              
+              <div className="flex items-center gap-6">
+                 <div className="text-center">
+                    <div className="w-24 h-24 rounded-full border-8 border-white/10 flex items-center justify-center relative">
+                       <svg className="w-full h-full absolute inset-0 transform -rotate-90">
+                          <circle cx="50%" cy="50%" r="40%" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                          <circle cx="50%" cy="50%" r="40%" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="251" strokeDashoffset={251 - (251 * result.totalScore / 100)} className="text-blue-500 transition-all duration-1000" />
+                       </svg>
+                       <span className="text-2xl font-black">{result.totalScore}</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest mt-2 block opacity-50">إجمالي النقاط</span>
+                 </div>
+              </div>
             </div>
           </div>
 
-          <div className="p-8">
-            {/* Axis Scores */}
-            <div className="space-y-4 mb-8">
-              {[
-                { label: 'وضوح الفكرة', score: result.clarity },
-                { label: 'القيمة المقترحة', score: result.value },
-                { label: 'التميز والابتكار', score: result.innovation },
-                { label: 'الجدوى السوقية', score: result.market },
-                { label: 'الجاهزية للتنفيذ', score: result.readiness },
-              ].map((item, idx) => (
-                <div key={idx}>
-                  <div className="flex justify-between text-sm font-bold text-slate-700 mb-1">
-                    <span>{item.label}</span>
-                    <span>{item.score}/20</span>
+          <div className="p-10 md:p-14">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="space-y-8">
+                <h3 className="font-black text-xl text-slate-800 flex items-center gap-3">
+                   <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                   تحليل المحاور الخمسة
+                </h3>
+                
+                {[
+                  { label: 'وضوح الفكرة', score: result.clarity, icon: '💡' },
+                  { label: 'القيمة المقترحة', score: result.value, icon: '🎯' },
+                  { label: 'التميز والابتكار', score: result.innovation, icon: '🧠' },
+                  { label: 'الجدوى السوقية', score: result.market, icon: '📊' },
+                  { label: 'الجاهزية للتنفيذ', score: result.readiness, icon: '⚙️' },
+                ].map((item, idx) => (
+                  <div key={idx} className="group">
+                    <div className="flex justify-between items-center mb-2">
+                       <span className="text-xs font-black text-slate-500 flex items-center gap-2">
+                         <span className="text-base">{item.icon}</span> {item.label}
+                       </span>
+                       <span className="text-sm font-black text-slate-900">{item.score}/20</span>
+                    </div>
+                    <div className="h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                       <div 
+                         className={`h-full rounded-full transition-all duration-1000 ease-out ${status.bg}`} 
+                         style={{ width: `${(item.score / 20) * 100}%` }}
+                       ></div>
+                    </div>
                   </div>
-                  <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-1000 ${getScoreColor(item.score)}`} 
-                      style={{ width: `${(item.score / 20) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* AI Opinion */}
-            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">🧠</span>
-                <h3 className="font-bold text-slate-800">رأي الذكاء الاصطناعي</h3>
+                ))}
               </div>
-              <p className="text-slate-600 leading-relaxed text-sm">
-                "{result.aiOpinion}"
-              </p>
+
+              <div className="flex flex-col">
+                 <h3 className="font-black text-xl text-slate-800 mb-6 flex items-center gap-3">
+                    <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                    رأي المستشار الذكي
+                 </h3>
+                 <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 flex-1 relative mb-6">
+                    <div className="absolute -top-4 right-8 w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm text-xl">🤖</div>
+                    <p className="text-slate-600 leading-relaxed font-medium italic">
+                      "{result.aiOpinion}"
+                    </p>
+                 </div>
+
+                 <div className={`p-6 rounded-2xl flex items-center justify-between border-2 ${status.text.replace('text', 'bg-opacity-10 bg').replace('text', 'border')}`}>
+                    <div className="flex items-center gap-4">
+                       <span className="text-3xl">{status.icon}</span>
+                       <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-0.5">التصنيف النهائي</p>
+                          <p className={`font-black text-lg ${status.text}`}>{status.label}</p>
+                       </div>
+                    </div>
+                    <svg className={`w-6 h-6 ${status.text}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                 </div>
+              </div>
             </div>
 
-            {/* Classification & Actions */}
-            <div className={`p-4 rounded-xl text-center mb-8 border ${getClassColor(result.classification)}`}>
-               <p className="font-bold text-lg">
-                 {result.classification === 'Green' ? 'المشروع جاهز للاحتضان ✅' : 
-                  result.classification === 'Yellow' ? 'المشروع يحتاج إلى تطوير ⚠️' : 
-                  'الفكرة غير واضحة أو غير مكتملة 🔴'}
-               </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="mt-14 pt-10 border-t border-slate-100 flex flex-col md:flex-row gap-4">
                <button 
-                 className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors"
-                 onClick={() => alert("سيتم تحميل التقرير بصيغة PDF قريباً...")}
+                 onClick={() => setResult(null)}
+                 className="flex-1 bg-white border-2 border-slate-200 text-slate-600 py-5 rounded-2xl font-black text-sm hover:bg-slate-50 transition-all active:scale-95"
                >
-                 تحميل التقرير PDF
+                 إعادة رفع الفكرة
                </button>
                <button 
-                 className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg"
                  onClick={() => onComplete(result)}
+                 className="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black text-sm hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
                >
-                 متابعة للنتيجة النهائية
+                 <span>الانتقال لمرحلة التطوير</span>
+                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                 </svg>
                </button>
             </div>
           </div>
@@ -134,75 +168,83 @@ export const ProjectEvaluation: React.FC<ProjectEvaluationProps> = ({ profile, o
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 md:p-8 font-sans">
       <div className="max-w-2xl w-full">
-        <div className="text-center mb-8 animate-fade-in-up">
-           <h1 className="text-3xl font-extrabold text-slate-900 mb-2">تقييم الفكرة والمشروع</h1>
-           <p className="text-slate-500">الخطوة الأخيرة: دعنا نحلل فكرتك عملياً باستخدام الذكاء الاصطناعي.</p>
+        <div className="text-center mb-12 animate-fade-in-up">
+           <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
+             AI Project Analyzer
+           </div>
+           <h1 className="text-4xl font-black text-slate-900 mb-3 tracking-tight leading-tight">الآن نودّ التعرّف على مشروعك</h1>
+           <p className="text-slate-500 text-lg">ارفع خطة العمل أو اكتب وصفاً تفصيلياً للفكرة للتحليل الذكي.</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative animate-aero-in">
-           {/* Tab Switcher */}
-           <div className="flex border-b border-slate-100">
+        <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden animate-fade-in-up">
+           <div className="flex border-b border-slate-100 bg-slate-50/50 p-2">
              <button 
                onClick={() => setInputMode('text')}
-               className={`flex-1 py-4 font-bold text-sm transition-colors ${inputMode === 'text' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+               className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 ${inputMode === 'text' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
              >
-               ✏️ كتابة الفكرة
+               <span>✏️</span> وصف الفكرة
              </button>
              <button 
                onClick={() => setInputMode('file')}
-               className={`flex-1 py-4 font-bold text-sm transition-colors ${inputMode === 'file' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+               className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 ${inputMode === 'file' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
              >
-               📎 رفع ملف (PDF/PPT)
+               <span>📎</span> رفع ملف
              </button>
            </div>
 
-           <div className="p-8">
+           <div className="p-8 md:p-12">
              {inputMode === 'text' ? (
                <div className="space-y-4">
-                 <label className="block text-sm font-bold text-slate-700">اشرح فكرتك بوضوح (المشكلة، الحل، السوق)</label>
+                 <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">تحدث عن فكرتك بحرية</label>
+                    <span className="text-[10px] text-blue-500 font-bold px-2 py-1 bg-blue-50 rounded-lg">{ideaText.length} حرف</span>
+                 </div>
                  <textarea 
-                   className="w-full h-48 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none text-slate-800"
-                   placeholder="مشروعي هو منصة تهدف إلى..."
+                   className="w-full h-64 p-8 bg-slate-50 border border-slate-200 rounded-[2rem] focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all resize-none text-slate-800 leading-relaxed text-lg shadow-inner"
+                   placeholder="ما هي المشكلة؟ وما هو الحل المبتكر الذي تقدمه؟"
                    value={ideaText}
                    onChange={(e) => setIdeaText(e.target.value)}
                  ></textarea>
-                 <p className="text-xs text-slate-400 text-left">{ideaText.length}/500 حرف</p>
                </div>
              ) : (
-               <div className="border-2 border-dashed border-slate-300 rounded-xl h-48 flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-colors cursor-pointer group">
-                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                    <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <div className="border-4 border-dashed border-slate-100 rounded-[3rem] h-64 flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50 hover:border-blue-200 transition-all cursor-pointer group">
+                  <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-lg mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                    <svg className="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                   </div>
-                  <p className="font-bold text-slate-600">اضغط لرفع الملف أو اسحبه هنا</p>
-                  <p className="text-xs text-slate-400 mt-2">PDF, DOCX, PPTX (Max 10MB)</p>
+                  <p className="font-black text-slate-700">اضغط لرفع ملف العرض التوضيحي</p>
+                  <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">PDF, DOCX, PPTX</p>
                </div>
              )}
 
-             <div className="mt-8">
+             <div className="mt-10">
                <button 
                  onClick={handleAnalyze}
                  disabled={isAnalyzing || (inputMode === 'text' && !ideaText.trim())}
-                 className="w-full bg-slate-900 hover:bg-blue-600 disabled:bg-slate-300 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group"
+                 className="w-full bg-slate-900 hover:bg-blue-600 disabled:bg-slate-200 text-white font-black py-6 rounded-2xl shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-4 group active:scale-95 overflow-hidden relative"
                >
                  {isAnalyzing ? (
                    <>
-                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                     <span>جاري تحليل الفكرة ذكياً...</span>
+                     <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                     <span className="text-lg">جاري التحليل الشامل للمحاور...</span>
                    </>
                  ) : (
                    <>
-                     <span>تحليل المشروع</span>
-                     <svg className="w-5 h-5 group-hover:translate-x-[-4px] transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <span className="text-xl">ابدأ التحليل الذكي للفكرة</span>
+                     <svg className="w-6 h-6 group-hover:translate-x-[-6px] transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                      </svg>
                    </>
                  )}
                </button>
              </div>
+             
+             <p className="text-center text-[10px] text-slate-400 mt-8 font-bold uppercase tracking-widest">
+               Powered by Gemini Pro • Business Developers Hub
+             </p>
            </div>
         </div>
       </div>

@@ -1,122 +1,35 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalyticalQuestion, ApplicantProfile, UserProfile, Question, ProjectEvaluationResult } from "../types";
+import { ApplicantProfile, UserProfile, ProjectEvaluationResult, Question, AnalyticalQuestion, FailureSimulation, GovStats } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-3-flash-preview";
 
-// --- Filtration System Logic ---
-
-export const generateAnalyticalQuestions = async (profile: ApplicantProfile): Promise<AnalyticalQuestion[]> => {
+// Evaluating project ideas with structured JSON output
+export const evaluateProjectIdea = async (description: string, profile: ApplicantProfile): Promise<ProjectEvaluationResult> => {
   const prompt = `
-    قم بإنشاء 5 أسئلة تحليلية وذكاء أعمال (Business Intelligence) لتقييم رائد أعمال متقدم لحاضنة أعمال.
+    أنت مستشار ريادي خبير في مسرعة أعمال "بيزنس ديفلوبرز". قم بتقييم فكرة المشروع التالية:
+    القطاع المستهدف: ${profile.sector}
+    المرحلة الحالية: ${profile.projectStage}
+    مستوى المتقدم التقني: ${profile.techLevel}
     
-    بيانات المتقدم:
-    - المجال: ${profile.sector}
-    - مرحلة المشروع: ${profile.projectStage}
-    - المستوى التقني: ${profile.techLevel}
+    الفكرة المكتوبة: "${description}"
 
-    المتطلبات:
-    1. الأسئلة يجب أن تتدرج في الصعوبة.
-    2. نوع الأسئلة: مزيج بين حسابات مالية بسيطة (Unit Economics)، تحليل موقف إداري، ومنطق برمجي/تقني.
-    3. الرد يجب أن يكون JSON Array صارم.
+    المطلوب منك تحليل الفكرة بموضوعية واحترافية عبر 5 محاور أساسية (درجة من 20 لكل محور):
+    1. Clarity (وضوح الفكرة): هل المشكلة والحل محددين بوضوح؟
+    2. Value (القيمة المقترحة): هل يقدم المشروع فائدة ملموسة للعملاء؟
+    3. Innovation (التميز والابتكار): هل هناك ميزة تنافسية حقيقية؟
+    4. Market (الجدوى السوقية): هل هناك طلب حقيقي وإمكانية نمو؟
+    5. Readiness (الجاهزية للتنفيذ): هل الفكرة قابلة للتطبيق بالموارد المتاحة؟
 
-    Format:
-    [
-      {
-        "id": number,
-        "text": "السؤال",
-        "type": "choice" | "analysis" | "math",
-        "difficulty": "Easy" | "Medium" | "Hard",
-        "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"],
-        "correctIndex": number (0-3)
-      }
-    ]
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.INTEGER },
-              text: { type: Type.STRING },
-              type: { type: Type.STRING, enum: ["choice", "analysis", "math"] },
-              difficulty: { type: Type.STRING, enum: ["Easy", "Medium", "Hard"] },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctIndex: { type: Type.INTEGER }
-            },
-            required: ["id", "text", "type", "difficulty", "options", "correctIndex"]
-          }
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("No response");
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Error generating questions:", error);
-    // Fallback static questions
-    return [
-      {
-        id: 1,
-        text: "إذا كانت تكلفة الاستحواذ على العميل (CAC) 50$ والقيمة العمرية (LTV) 40$، ماذا تفعل؟",
-        type: "analysis",
-        difficulty: "Easy",
-        options: ["أزيد ميزانية التسويق", "أوقف الحملات وأحسن المنتج/التسعير", "أوظف المزيد من المبيعات", "لاشيء، هذا طبيعي في البداية"],
-        correctIndex: 1
-      },
-      {
-        id: 2,
-        text: "أي من المؤشرات التالية هو الأهم لشركة SaaS في مرحلة النمو؟",
-        type: "choice",
-        difficulty: "Medium",
-        options: ["عدد الموظفين", "MRR (الإيرادات الشهرية المتكررة)", "عدد المتابعين", "إجمالي التكاليف"],
-        correctIndex: 1
-      },
-      {
-        id: 3,
-        text: "لديك 1000 مستخدم، 5% منهم يشترون الخدمة بسعر 100$. كم إجمالي الإيرادات؟",
-        type: "math",
-        difficulty: "Medium",
-        options: ["500$", "5000$", "1000$", "50000$"],
-        correctIndex: 1
-      }
-    ];
-  }
-};
-
-export const evaluateProjectIdea = async (ideaText: string, profile: ApplicantProfile): Promise<ProjectEvaluationResult> => {
-  const prompt = `
-    أنت خبير تقييم مشاريع في مسرعة أعمال.
-    قم بتحليل فكرة المشروع التالية بناءً على 5 محاور رئيسية.
+    يجب أن يكون المجموع الكلي من 100.
     
-    بيانات المشروع:
-    - المجال: ${profile.sector}
-    - المرحلة: ${profile.projectStage}
-    - وصف الفكرة: "${ideaText}"
+    تصنيفات الحالة (classification):
+    - Green: مجموع 80-100 (فكرة ناضجة ومؤهلة).
+    - Yellow: مجموع 60-79 (فكرة واعدة تحتاج تطوير).
+    - Red: مجموع أقل من 60 (فكرة ضعيفة أو غير واضحة).
 
-    المطلوب:
-    1. تقييم كل محور من 0 إلى 20.
-    2. المجموع الكلي من 100.
-    3. رأي الذكاء الاصطناعي (فقرة قصيرة مفيدة).
-    4. التصنيف (Green = جاهز للاحتضان، Yellow = يحتاج تطوير، Red = غير واضح).
-
-    المحاور:
-    - clarity: وضوح الفكرة وتحديد المشكلة والحل.
-    - value: القيمة المقترحة والفائدة للعميل.
-    - innovation: التميز والابتكار مقارنة بالسوق.
-    - market: الجدوى السوقية وحجم السوق.
-    - readiness: الجاهزية للتنفيذ وقابلية التطبيق.
-
-    JSON Output Format:
+    يجب أن يكون الرد بصيغة JSON فقط:
     {
       "clarity": number,
       "value": number,
@@ -124,7 +37,7 @@ export const evaluateProjectIdea = async (ideaText: string, profile: ApplicantPr
       "market": number,
       "readiness": number,
       "totalScore": number,
-      "aiOpinion": "string",
+      "aiOpinion": "نص بالعربية يشرح نقاط القوة والضعف وتوصية للمستقبل",
       "classification": "Green" | "Yellow" | "Red"
     }
   `;
@@ -145,96 +58,71 @@ export const evaluateProjectIdea = async (ideaText: string, profile: ApplicantPr
             readiness: { type: Type.NUMBER },
             totalScore: { type: Type.NUMBER },
             aiOpinion: { type: Type.STRING },
-            classification: { type: Type.STRING, enum: ["Green", "Yellow", "Red"] }
+            classification: { type: Type.STRING, enum: ['Green', 'Yellow', 'Red'] }
           },
           required: ["clarity", "value", "innovation", "market", "readiness", "totalScore", "aiOpinion", "classification"]
         }
       }
     });
-
-    const text = response.text;
-    if (!text) throw new Error("No evaluation generated");
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Error evaluating project:", error);
+    return JSON.parse(response.text || "{}");
+  } catch (e) {
     return {
-      clarity: 15, value: 15, innovation: 10, market: 12, readiness: 10,
-      totalScore: 62,
-      aiOpinion: "فكرة واعدة ولكن تحتاج إلى مزيد من التفصيل في خطة التنفيذ وتحليل المنافسين.",
-      classification: "Yellow"
+      clarity: 10, value: 10, innovation: 10, market: 10, readiness: 10,
+      totalScore: 50, aiOpinion: "حدث خطأ أثناء التحليل الذكي. يرجى المحاولة لاحقاً.",
+      classification: 'Yellow'
     };
   }
 };
 
-// --- Accelerator Level Logic ---
-
-export const generateLevelMaterial = async (levelId: number, levelTitle: string, user: UserProfile): Promise<{ content: string; exercise: string }> => {
-  const prompt = `
-    أنت مرشد أعمال ذكي. قم بإنشاء محتوى تعليمي للمستوى رقم ${levelId}: "${levelTitle}" لرائد أعمال.
-    
-    بيانات المشروع:
-    - الاسم: ${user.startupName}
-    - الوصف: ${user.startupDescription}
-    - المجال: ${user.industry}
-
-    المطلوب:
-    1. محتوى تعليمي (content): نص غني ومفيد يشرح المفاهيم الأساسية لهذا المستوى، مع أمثلة تطبيقية تناسب مجال المشروع المحدد. (حوالي 300 كلمة).
-    2. تمرين عملي (exercise): سؤال تطبيقي واحد يطلب من رائد الأعمال تطبيق ما تعلمه على مشروعه الخاص.
-
-    Output JSON Format:
-    {
-      "content": "string (markdown allowed)",
-      "exercise": "string"
+// Creating a chat session for the Path Finder interview
+export const createPathFinderChat = () => {
+  return ai.chats.create({
+    model: MODEL_NAME,
+    config: {
+      systemInstruction: `أنت "مستشار المسار" الذكي في مسرعة بيزنس ديفلوبرز. 
+      مهمتك هي إجراء مقابلة ريادية قصيرة (3-5 أسئلة) لتقييم عقلية المستخدم وجاهزيته.
+      1. ابدأ بترحيب حماسي واسأل عن جوهر الفكرة.
+      2. اطرح سؤالاً واحداً في كل مرة.
+      3. ركز على: حل المشكلة، نموذج الربح، والشغف.
+      4. كن ودوداً ولكن دقيقاً في ملاحظاتك.
+      5. عندما تنتهي من التقييم، أرسل بلوك JSON بالقرار النهائي:
+      \`\`\`json
+      { "decision": "APPROVED", "reason": "شرح لسبب القبول بناءً على الحوار", "feedback": "توصية ختامية للمستخدم" }
+      \`\`\`
+      إذا كان المستخدم غير جدي أو إجاباته فارغة، استخدم "REJECTED".`,
     }
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            content: { type: Type.STRING },
-            exercise: { type: Type.STRING }
-          },
-          required: ["content", "exercise"]
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("No content generated");
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Error generating level material:", error);
-    return {
-      content: `مرحباً بك في المستوى ${levelId}. في هذا المستوى سنتعلم أساسيات ${levelTitle}. \n\nيعتبر هذا الموضوع حيوياً لنجاح أي شركة ناشئة في مجال ${user.industry}. عليك التركيز على فهم احتياجات عملائك وكيفية تلبيتها بكفاءة.\n\nقم بمراجعة المصادر الإضافية واستعد للتطبيق العملي.`,
-      exercise: `بناءً على ما تعلمته، كيف يمكنك تطبيق مفاهيم ${levelTitle} على مشروعك "${user.startupName}"؟ اشرح في 3 نقاط.`
-    };
-  }
+  });
 };
 
-export const generateLevelQuiz = async (levelId: number, levelTitle: string, user: UserProfile): Promise<Question[]> => {
-  const prompt = `
-    قم بإنشاء اختبار قصير (3 أسئلة) للمستوى ${levelId}: "${levelTitle}".
-    يجب أن تكون الأسئلة ذات صلة بمجال ريادة الأعمال وبشكل عام تناسب سياق مشروع في قطاع: ${user.industry}.
-
-    Output JSON Format:
-    [
-      {
-        "id": number,
-        "text": "السؤال",
-        "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"],
-        "correctIndex": number (0-3),
-        "explanation": "شرح للإجابة الصحيحة"
+// Generating educational material for specific startup levels
+export const generateLevelMaterial = async (levelId: number, title: string, user: UserProfile): Promise<{ content: string; exercise: string }> => {
+  const prompt = `بصفتك مدرب أعمال خبير، أنتج مادة تعليمية للمستوى ${levelId}: ${title}. 
+  مشروع المستخدم: ${user.startupName} في قطاع ${user.industry}.
+  المطلوب:
+  1. محتوى نصي (content) باللغة العربية بأسلوب تعليمي رصين ومحفز.
+  2. تمرين تطبيقي (exercise) يطلب من المستخدم تنفيذ مهمة محددة لمشروعه.
+  الرد JSON فقط.`;
+  const response = await ai.models.generateContent({
+    model: MODEL_NAME,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          content: { type: Type.STRING },
+          exercise: { type: Type.STRING }
+        },
+        required: ["content", "exercise"]
       }
-    ]
-  `;
+    }
+  });
+  return JSON.parse(response.text || "{}");
+};
 
-  try {
+// Generating quiz questions for a specific level
+export const generateLevelQuiz = async (levelId: number, title: string, user: UserProfile): Promise<Question[]> => {
+    const prompt = `أنتج اختباراً من 3 أسئلة اختيار من متعدد للمستوى ${levelId}: ${title}. الأسئلة يجب أن تقيس فهم المبادئ المذكورة في هذا المستوى. الرد JSON كمصفوفة.`;
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
@@ -245,10 +133,10 @@ export const generateLevelQuiz = async (levelId: number, levelTitle: string, use
           items: {
             type: Type.OBJECT,
             properties: {
-              id: { type: Type.INTEGER },
+              id: { type: Type.NUMBER },
               text: { type: Type.STRING },
               options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctIndex: { type: Type.INTEGER },
+              correctIndex: { type: Type.NUMBER },
               explanation: { type: Type.STRING }
             },
             required: ["id", "text", "options", "correctIndex", "explanation"]
@@ -256,112 +144,220 @@ export const generateLevelQuiz = async (levelId: number, levelTitle: string, use
         }
       }
     });
-
-    const text = response.text;
-    if (!text) throw new Error("No quiz generated");
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Error generating quiz:", error);
-    return [
-      {
-        id: 1,
-        text: `ما هو العنصر الأهم عند البدء في ${levelTitle}؟`,
-        options: ["التمويل", "الفريق", "فهم المشكلة", "التسويق"],
-        correctIndex: 2,
-        explanation: "فهم المشكلة هو حجر الزاوية لأي حل ناجح."
-      },
-      {
-        id: 2,
-        text: "أي مما يلي يعتبر مؤشراً جيداً للنجاح في هذا المستوى؟",
-        options: ["زيادة المتابعين", "رضا العملاء", "كثرة الميزات", "جمال التصميم"],
-        correctIndex: 1,
-        explanation: "رضا العملاء هو الدليل الحقيقي على القيمة."
-      },
-      {
-        id: 3,
-        text: "ما الخطأ الشائع الذي يقع فيه الرواد في هذه المرحلة؟",
-        options: ["الاستعجال", "التفكير الزائد", "تجاهل العملاء", "كل ما سبق"],
-        correctIndex: 3,
-        explanation: "كل هذه أخطاء شائعة يجب تجنبها."
-      }
-    ];
-  }
+    return JSON.parse(response.text || "[]");
 };
 
-export const evaluateExerciseResponse = async (exercisePrompt: string, userAnswer: string): Promise<{ passed: boolean; feedback: string }> => {
-  const prompt = `
-    أنت مقيم أعمال خبير.
-    سؤال التمرين: "${exercisePrompt}"
-    إجابة رائد الأعمال: "${userAnswer}"
-
-    قيم الإجابة. هل هي مقبولة وتدل على فهم جيد؟ (passed: true/false).
-    قدم تعليقاً (feedback) بناءً ومشجعاً.
-
-    Output JSON:
-    {
-      "passed": boolean,
-      "feedback": "string"
+// Evaluating an exercise response from a user
+export const evaluateExerciseResponse = async (prompt: string, answer: string): Promise<{ passed: boolean; feedback: string }> => {
+  const response = await ai.models.generateContent({
+    model: MODEL_NAME,
+    contents: `بصفتك مقيم مشاريع، قيّم هذه الإجابة على التمرين: ${prompt}. الإجابة المقدمة: ${answer}. هل هي مقنعة وتنم عن فهم؟ الرد JSON فقط.`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          passed: { type: Type.BOOLEAN },
+          feedback: { type: Type.STRING }
+        },
+        required: ["passed", "feedback"]
+      }
     }
-  `;
+  });
+  return JSON.parse(response.text || "{}");
+};
 
-  try {
+// Generating sector-specific analytical questions for the personality test phase
+export const generateAnalyticalQuestions = async (profile: ApplicantProfile): Promise<AnalyticalQuestion[]> => {
+    const prompt = `أنتج 3 أسئلة تحليلية ذكية لتقييم رائد أعمال في قطاع ${profile.sector}. الأسئلة يجب أن تتضمن سيناريوهات عملية. الرد JSON.`;
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            passed: { type: Type.BOOLEAN },
-            feedback: { type: Type.STRING }
-          },
-          required: ["passed", "feedback"]
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              text: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              correctIndex: { type: Type.NUMBER },
+              difficulty: { type: Type.STRING, enum: ['Easy', 'Medium', 'Hard'] }
+            },
+            required: ["text", "options", "correctIndex", "difficulty"]
+          }
         }
       }
     });
-
-    const text = response.text;
-    if (!text) throw new Error("No evaluation generated");
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Error evaluating exercise:", error);
-    return {
-      passed: true,
-      feedback: "إجابة جيدة. أحسنت المحاولة! (تعذر الاتصال بالخادم للتحليل الدقيق)"
-    };
-  }
+    return JSON.parse(response.text || "[]");
 };
 
-export const createPathFinderChat = () => {
-  return ai.chats.create({
-    model: MODEL_NAME,
-    config: {
-      systemInstruction: `
-        أنت "المستشار الذكي" لحاضنة الأعمال. دورك هو محاورة رواد الأعمال لتقييم أفكارهم وتوجيههم.
-        
-        أسلوبك:
-        - ودود، محفز، ومحترف.
-        - اسأل أسئلة قصيرة ومباشرة (سؤال واحد في كل مرة) لفهم المشروع.
-        - المحاور: المشكلة، الحل، السوق المستهدف، والميزة التنافسية.
-        
-        الهدف:
-        بعد فهم الفكرة (عادة بعد 3-5 أسئلة)، عليك اتخاذ قرار: هل المشروع مؤهل للانضمام للحاضنة؟
-        
-        إذا اتخذت القرار، يجب أن يكون ردك متضمناً لكتلة JSON مخفية (داخل \`\`\`json ... \`\`\`) بالصيغة التالية، بالإضافة إلى رسالة وداعية لطيفة للمستخدم خارج الـ JSON.
-        
-        JSON Format for decision:
-        {
-          "decision": "APPROVED" | "REJECTED",
-          "reason": "سبب القرار في جملة واحدة",
-          "feedback": "نصيحة مفصلة للمستخدم"
+// Running multiple AI agents to analyze a project
+export const runProjectAgents = async (name: string, description: string, agentIds: string[]): Promise<any> => {
+    const prompt = `حلل مشروع: ${name}. الوصف: ${description}. باستخدام الوكلاء: ${agentIds.join(', ')}. الرد JSON يشمل الرؤية، تحليل السوق، شرائح المستخدمين، والفرضيات.`;
+    const response = await ai.models.generateContent({
+        model: "gemini-3-pro-preview",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    vision: { type: Type.STRING },
+                    market: { type: Type.STRING },
+                    users: { type: Type.STRING },
+                    hypotheses: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["vision", "market", "users", "hypotheses"]
+            }
         }
+    });
+    return JSON.parse(response.text || "{}");
+};
 
-        معايير القبول:
-        - مشكلة واضحة وحل منطقي.
-        - سوق واعد.
-        - جدية من المؤسس.
-      `,
-    },
+// Generating a pitch deck based on project results
+export const generatePitchDeck = async (name: string, description: string, results: any): Promise<{ title: string; content: string }[]> => {
+    const prompt = `حول نتائج مشروع ${name} إلى عرض تقديمي (Pitch Deck) احترافي. الرد JSON كمصفوفة شرائح.`;
+    const response = await ai.models.generateContent({
+        model: "gemini-3-pro-preview",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        content: { type: Type.STRING }
+                    },
+                    required: ["title", "content"]
+                }
+            }
+        }
+    });
+    return JSON.parse(response.text || "[]");
+};
+
+// Fixed missing export for ExportDecisionEngine component
+export const analyzeExportOpportunity = async (formData: any): Promise<any> => {
+  const prompt = `حلل فرصة التصدير للمنتج التالي:
+    نوع المنتج: ${formData.productType}
+    القطاع: ${formData.sector}
+    الجاهزية: ${formData.readiness}
+    السوق المستهدف: ${formData.targetMarket}
+    التوقيت: ${formData.timing}
+    
+    المطلوب: تقديم قرار تصديري (EXPORT_NOW, WAIT, REJECT) وتحليل للمخاطر والطلب والتنظيمات والتوصيات.
+    الرد JSON فقط.`;
+
+  const response = await ai.models.generateContent({
+    model: MODEL_NAME,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          decision: { type: Type.STRING, enum: ['EXPORT_NOW', 'WAIT', 'REJECT'] },
+          analysis: {
+            type: Type.OBJECT,
+            properties: {
+              demand: { type: Type.STRING },
+              regulations: { type: Type.STRING },
+              risks: { type: Type.STRING },
+              seasonality: { type: Type.STRING }
+            },
+            required: ["demand", "regulations", "risks", "seasonality"]
+          },
+          recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["decision", "analysis", "recommendations"]
+      }
+    }
   });
+  return JSON.parse(response.text || "{}");
+};
+
+// Fixed missing export for SmartFeatures component
+export const simulateBrutalTruth = async (formData: any): Promise<FailureSimulation> => {
+  const prompt = `قدم "الحقيقة القاسية" حول فشل تصدير المنتج ${formData.productType} إلى ${formData.targetMarket}. كن صريحاً ومباشراً جداً في توضيح لماذا قد يفشل المشروع مالياً وتشغيلياً.
+    الرد JSON فقط.`;
+
+  const response = await ai.models.generateContent({
+    model: MODEL_NAME,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          brutalTruth: { type: Type.STRING },
+          probability: { type: Type.NUMBER },
+          financialLoss: { type: Type.STRING },
+          operationalImpact: { type: Type.STRING },
+          missingQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+          recoveryPlan: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["brutalTruth", "probability", "financialLoss", "operationalImpact", "missingQuestions", "recoveryPlan"]
+      }
+    }
+  });
+  return JSON.parse(response.text || "{}");
+};
+
+// Fixed missing export for GovDashboard component
+export const getGovInsights = async (): Promise<GovStats> => {
+  const prompt = `ولد إحصائيات ورؤى وطنية حول سوق التصدير والناجحين والقطاعات الواعدة بناءً على بيانات افتراضية واقعية للمنطقة العربية.
+    الرد JSON فقط.`;
+
+  const response = await ai.models.generateContent({
+    model: MODEL_NAME,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          riskyMarkets: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                failRate: { type: Type.NUMBER }
+              },
+              required: ["name", "failRate"]
+            }
+          },
+          readySectors: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                score: { type: Type.NUMBER }
+              },
+              required: ["name", "score"]
+            }
+          },
+          commonFailReasons: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                reason: { type: Type.STRING },
+                percentage: { type: Type.NUMBER }
+              },
+              required: ["reason", "percentage"]
+            }
+          },
+          regulatoryGaps: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["riskyMarkets", "readySectors", "commonFailReasons", "regulatoryGaps"]
+      }
+    }
+  });
+  return JSON.parse(response.text || "{}");
 };

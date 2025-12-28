@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { UserProfile, ProjectEvaluationResult, ApplicantProfile } from '../types';
 import { evaluateProjectIdea } from '../services/geminiService';
-import { playPositiveSound, playCelebrationSound } from '../services/audioService';
+import { playPositiveSound, playCelebrationSound, playErrorSound } from '../services/audioService';
 
 interface RegistrationProps {
   onRegister: (profile: UserProfile) => void;
@@ -35,6 +35,7 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
     industry: 'Technology'
   });
   
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -46,17 +47,35 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
     ind.label.includes(searchTerm)
   );
 
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = 'يرجى إدخل اسم رائد الأعمال';
+    if (!formData.startupName.trim()) newErrors.startupName = 'يرجى إدخال اسم المشروع';
+    if (!formData.startupDescription.trim()) {
+      newErrors.startupDescription = 'يرجى إدخال وصف الفكرة';
+    } else if (formData.startupDescription.length < 20) {
+      newErrors.startupDescription = 'وصف الفكرة قصير جداً (يجب أن يكون 20 حرفاً على الأقل)';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleAnalyzeIdea = async () => {
-    if (!formData.startupDescription || formData.startupDescription.length < 20) return;
+    if (!formData.startupDescription || formData.startupDescription.length < 20) {
+      setErrors(prev => ({ ...prev, startupDescription: 'يرجى كتابة 20 حرفاً على الأقل للتحليل' }));
+      playErrorSound();
+      return;
+    }
     
+    setErrors(prev => ({ ...prev, startupDescription: '' }));
     setIsAnalyzing(true);
     playPositiveSound();
 
     try {
-      // Create a temporary profile object to satisfy the service signature
       const tempProfile: ApplicantProfile = {
         codeName: formData.name,
-        projectStage: 'Idea', // Default assumption for registration
+        projectStage: 'Idea',
         sector: formData.industry,
         goal: 'Registration Analysis',
         techLevel: 'Medium'
@@ -74,15 +93,11 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.startupName && formData.startupDescription) {
+    if (validate()) {
       onRegister(formData);
+    } else {
+      playErrorSound();
     }
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 15) return 'bg-green-500';
-    if (score >= 10) return 'bg-yellow-500';
-    return 'bg-red-500';
   };
 
   const getClassColor = (cls: string) => {
@@ -94,9 +109,12 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
     }
   };
 
+  const descLength = formData.startupDescription.length;
+  const isDescValid = descLength >= 20;
+
   return (
     <div className="min-h-screen flex bg-white font-sans">
-      {/* Left Side - Visual & Branding (Hidden on mobile) */}
+      {/* Left Side - Visual & Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-blue-900 overflow-hidden flex-col justify-between p-12 text-white">
         <div className="absolute inset-0 z-0 opacity-20">
           <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -110,7 +128,6 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
           </svg>
         </div>
         
-        {/* Abstract shapes */}
         <div className="absolute top-20 right-20 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
         <div className="absolute bottom-20 left-20 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
@@ -175,11 +192,14 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
               <div className="relative">
                 <input
                   type="text"
-                  required
-                  className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-200"
+                  className={`w-full pl-4 pr-10 py-3 bg-gray-50 border rounded-xl focus:bg-white focus:ring-2 outline-none transition-all duration-200 
+                    ${errors.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-blue-500/20 focus:border-blue-500'}`}
                   placeholder="الاسم الثلاثي"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, name: e.target.value });
+                    if (errors.name) setErrors({ ...errors, name: '' });
+                  }}
                 />
                 <div className="absolute left-3 top-3.5 text-gray-400">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -187,6 +207,7 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
                   </svg>
                 </div>
               </div>
+              {errors.name && <p className="text-red-500 text-xs mt-1 mr-1 animate-pulse">{errors.name}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -195,11 +216,14 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
                 <div className="relative">
                   <input
                     type="text"
-                    required
-                    className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-200"
+                    className={`w-full pl-4 pr-10 py-3 bg-gray-50 border rounded-xl focus:bg-white focus:ring-2 outline-none transition-all duration-200 
+                      ${errors.startupName ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-blue-500/20 focus:border-blue-500'}`}
                     placeholder="اسم الشركة الناشئة"
                     value={formData.startupName}
-                    onChange={(e) => setFormData({ ...formData, startupName: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, startupName: e.target.value });
+                      if (errors.startupName) setErrors({ ...errors, startupName: '' });
+                    }}
                   />
                    <div className="absolute left-3 top-3.5 text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -207,12 +231,12 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
                     </svg>
                   </div>
                 </div>
+                {errors.startupName && <p className="text-red-500 text-xs mt-1 mr-1 animate-pulse">{errors.startupName}</p>}
               </div>
 
               <div className="group relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-2 group-focus-within:text-blue-600 transition-colors">المجال</label>
                 
-                {/* Backdrop to close dropdown on outside click */}
                 {isDropdownOpen && (
                   <div className="fixed inset-0 z-30" onClick={() => setIsDropdownOpen(false)} />
                 )}
@@ -290,28 +314,42 @@ export const Registration: React.FC<RegistrationProps> = ({ onRegister }) => {
             </div>
 
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-2 group-focus-within:text-blue-600 transition-colors">
-                وصف الفكرة
-                <span className="text-gray-400 font-normal text-xs mr-2">(اكتب 20 حرفاً على الأقل للتحليل)</span>
-              </label>
-              <textarea
-                required
-                rows={4}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-200 resize-none"
-                placeholder="اشرح المشكلة التي تحلها والحل المقترح..."
-                value={formData.startupDescription}
-                onChange={(e) => {
-                  setFormData({ ...formData, startupDescription: e.target.value });
-                  if (analysisResult) setAnalysisResult(null); // Reset analysis if changed
-                }}
-              />
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-gray-700 group-focus-within:text-blue-600 transition-colors">
+                  وصف الفكرة
+                </label>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors duration-300 ${isDescValid ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {descLength} / 20 حرف كحد أدنى
+                </span>
+              </div>
+              <div className="relative">
+                <textarea
+                  rows={4}
+                  className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:bg-white focus:ring-2 outline-none transition-all duration-200 resize-none 
+                    ${errors.startupDescription ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-blue-500/20 focus:border-blue-500'}`}
+                  placeholder="اشرح المشكلة التي تحلها والحل المقترح..."
+                  value={formData.startupDescription}
+                  onChange={(e) => {
+                    setFormData({ ...formData, startupDescription: e.target.value });
+                    if (errors.startupDescription) setErrors({ ...errors, startupDescription: '' });
+                    if (analysisResult) setAnalysisResult(null);
+                  }}
+                />
+                <div className="absolute bottom-0 right-0 left-0 h-1 overflow-hidden rounded-b-xl pointer-events-none">
+                  <div 
+                    className={`h-full transition-all duration-500 ${isDescValid ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-blue-400 opacity-40'}`} 
+                    style={{ width: `${Math.min((descLength / 20) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+              {errors.startupDescription && <p className="text-red-500 text-xs mt-1 mr-1 animate-pulse">{errors.startupDescription}</p>}
               
               {/* AI Analysis Button */}
               <div className="mt-2 flex justify-end">
                 <button
                   type="button"
                   onClick={handleAnalyzeIdea}
-                  disabled={!formData.startupDescription || formData.startupDescription.length < 20 || isAnalyzing}
+                  disabled={isAnalyzing}
                   className="text-sm bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isAnalyzing ? (
