@@ -51,6 +51,9 @@ export interface LevelData {
   description: string;
   isCompleted: boolean;
   isLocked: boolean;
+  objectives?: string[];
+  keyConcepts?: string[];
+  estimatedTime?: string;
 }
 
 export interface Question {
@@ -153,12 +156,66 @@ export interface GovStats {
 }
 
 export const LEVELS_CONFIG: LevelData[] = [
-  { id: 1, title: 'التحقق من الفكرة', description: 'تأكد من أن فكرتك تحل مشكلة حقيقية وتستحق الاستثمار والجهد.', isCompleted: false, isLocked: false },
-  { id: 2, title: 'نموذج العمل التجاري', description: 'ابنِ خطة عمل واضحة تحدد مصادر الدخل، العملاء، وقنوات التوزيع.', isCompleted: false, isLocked: true },
-  { id: 3, title: 'تحليل السوق والمنافسين', description: 'افهم حجم السوق ومن هم منافسوك وكيف ستتفوق عليهم بميزتك التنافسية.', isCompleted: false, isLocked: true },
-  { id: 4, title: 'المنتج الأولي (MVP)', description: 'حدد الميزات الأساسية لمنتجك لإطلاقه بأقل التكاليف والحصول على تعليقات العملاء.', isCompleted: false, isLocked: true },
-  { id: 5, title: 'الخطة المالية والتمويل', description: 'توقع التكاليف، الإيرادات، التدفقات النقدية، واحتياجات التمويل المستقبلي.', isCompleted: false, isLocked: true },
-  { id: 6, title: 'عرض الاستثمار النهائي', description: 'جهز عرضاً تقديمياً احترافياً (Pitch Deck) لجذب المستثمرين.', isCompleted: false, isLocked: true },
+  { 
+    id: 1, 
+    title: 'التحقق من الفكرة', 
+    description: 'تأكد من أن فكرتك تحل مشكلة حقيقية وتستحق الاستثمار والجهد.', 
+    isCompleted: false, 
+    isLocked: false,
+    objectives: ['تحديد المشكلة الحقيقية', 'فهم الفئة المستهدفة', 'صياغة القيمة المقترحة'],
+    keyConcepts: ['Problem-Solution Fit', 'Value Proposition', 'Customer Validation'],
+    estimatedTime: '45 دقيقة'
+  },
+  { 
+    id: 2, 
+    title: 'نموذج العمل التجاري', 
+    description: 'ابنِ خطة عمل واضحة تحدد مصادر الدخل، العملاء، وقنوات التوزيع.', 
+    isCompleted: false, 
+    isLocked: true,
+    objectives: ['تصميم مخطط نموذج العمل', 'تحديد قنوات الإيرادات', 'تحليل هيكل التكاليف'],
+    keyConcepts: ['Business Model Canvas', 'Revenue Streams', 'Cost Structure'],
+    estimatedTime: '60 دقيقة'
+  },
+  { 
+    id: 3, 
+    title: 'تحليل السوق والمنافسين', 
+    description: 'افهم حجم السوق ومن هم منافسوك وكيف ستتفوق عليهم بميزتك التنافسية.', 
+    isCompleted: false, 
+    isLocked: true,
+    objectives: ['حساب حجم السوق (TAM/SAM/SOM)', 'تحليل المنافسين المباشرين وغير المباشرين', 'تحديد الميزة التنافسية'],
+    keyConcepts: ['Market Sizing', 'Competitive Landscape', 'USP'],
+    estimatedTime: '75 دقيقة'
+  },
+  { 
+    id: 4, 
+    title: 'المنتج الأولي (MVP)', 
+    description: 'حدد الميزات الأساسية لمنتجك لإطلاقه بأقل التكاليف والحصول على تعليقات العملاء.', 
+    isCompleted: false, 
+    isLocked: true,
+    objectives: ['بناء قائمة الميزات الأساسية', 'تصميم تجربة المستخدم الأولية', 'تحديد مؤشرات النجاح'],
+    keyConcepts: ['Minimum Viable Product', 'Lean Startup', 'Build-Measure-Learn'],
+    estimatedTime: '90 دقيقة'
+  },
+  { 
+    id: 5, 
+    title: 'الخطة المالية والتمويل', 
+    description: 'توقع التكاليف، الإيرادات، التدفقات النقدية، وااحتياجات التمويل المستقبلي.', 
+    isCompleted: false, 
+    isLocked: true,
+    objectives: ['بناء التوقعات المالية', 'فهم نقطة التعادل', 'تحديد جولات التمويل'],
+    keyConcepts: ['Financial Projections', 'Burn Rate', 'Break-even Point'],
+    estimatedTime: '60 دقيقة'
+  },
+  { 
+    id: 6, 
+    title: 'عرض الاستثمار النهائي', 
+    description: 'جهز عرضاً تقديمياً احترافياً (Pitch Deck) لجذب المستثمرين.', 
+    isCompleted: false, 
+    isLocked: true,
+    objectives: ['صياغة قصة المشروع', 'تصميم شرائح العرض', 'التدريب على تقديم العرض'],
+    keyConcepts: ['Pitch Deck', 'Storytelling', 'Investor Readiness'],
+    estimatedTime: '45 دقيقة'
+  },
 ];
 
 export const AVAILABLE_AGENTS: AIAgent[] = [
